@@ -1,0 +1,13 @@
+{
+  "name": "fursphere",
+  "version": "1.0.0",
+  "description": "FurSphere - Happy Pets, Healthy Lives - Full-stack pet e-commerce and AI pet-care web app",
+  "scripts": {
+    "client": "npm --prefix client run dev",
+    "server": "npm --prefix server run dev",
+    "install:all": "npm --prefix client install && npm --prefix server install"
+  },
+  "keywords": ["pet", "ecommerce", "ai", "gemini", "fursphere", "react", "express", "mongodb"],
+  "author": "FurSphere Team",
+  "license": "ISC"
+}
