@@ -27,6 +27,9 @@ export default function Home() {
   const [foodProducts, setFoodProducts] = useState([]);
   const [selectedPetType, setSelectedPetType] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [showAiChatBanner, setShowAiChatBanner] = useState(() => {
+    return localStorage.getItem('fursphere_hide_ai_chat_banner') !== 'true';
+  });
 
   useEffect(() => {
     const loadHomeData = async () => {
@@ -156,28 +159,48 @@ export default function Home() {
       </div>
 
       {/* 3. AI Feature Highlights Banner */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* AI Chat Banner */}
-        <Link
-          to="/ai-chat"
-          className="group p-5 rounded-3xl bg-gradient-to-r from-sky-50 to-indigo-50 border border-sky-100 hover:border-sky-200 shadow-sm transition-all flex items-center justify-between"
-        >
-          <div className="space-y-1">
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-sky-700 bg-sky-200/60 px-2.5 py-0.5 rounded-full">
-              <Sparkles className="w-3 h-3 text-sky-600 fill-sky-300" />
-              Gemini AI
-            </span>
-            <h3 className="text-base font-bold text-slate-900 group-hover:text-sky-700 transition-colors">
-              FurSphere AI Pet Assistant
-            </h3>
-            <p className="text-xs text-slate-500 max-w-xs">
-              Ask anything about your dog or cat's diet, symptoms, or daily care routine.
-            </p>
+      <div className={`grid grid-cols-1 ${showAiChatBanner ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-4`}>
+        {/* AI Chat Banner (Removable / Dismissible) */}
+        {showAiChatBanner && (
+          <div className="relative group/box">
+            <Link
+              to="/ai-chat"
+              className="group p-5 rounded-3xl bg-gradient-to-r from-sky-50 to-indigo-50 border border-sky-100 hover:border-sky-200 shadow-sm transition-all flex items-center justify-between h-full"
+            >
+              <div className="space-y-1 pr-6">
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-sky-700 bg-sky-200/60 px-2.5 py-0.5 rounded-full">
+                  <Sparkles className="w-3 h-3 text-sky-600 fill-sky-300" />
+                  Gemini AI
+                </span>
+                <h3 className="text-base font-bold text-slate-900 group-hover:text-sky-700 transition-colors">
+                  FurSphere AI Pet Assistant
+                </h3>
+                <p className="text-xs text-slate-500 max-w-xs">
+                  Ask anything about your dog or cat's diet, symptoms, or daily care routine.
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-sky-500 text-white flex items-center justify-center shadow-md shadow-sky-500/20 group-hover:scale-105 transition-transform shrink-0 ml-4">
+                <Sparkles className="w-6 h-6 fill-sky-200" />
+              </div>
+            </Link>
+
+            {/* Remove / Dismiss AI Chat Banner button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowAiChatBanner(false);
+                localStorage.setItem('fursphere_hide_ai_chat_banner', 'true');
+              }}
+              className="absolute top-3 right-3 p-1.5 rounded-full bg-white/80 hover:bg-white text-slate-400 hover:text-rose-500 border border-slate-200/60 shadow-2xs transition-all cursor-pointer opacity-80 hover:opacity-100"
+              title="Remove AI Chat Banner from Home"
+            >
+              <span className="sr-only">Remove AI Chat Banner</span>
+              ✕
+            </button>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-sky-500 text-white flex items-center justify-center shadow-md shadow-sky-500/20 group-hover:scale-105 transition-transform shrink-0 ml-4">
-            <Sparkles className="w-6 h-6 fill-sky-200" />
-          </div>
-        </Link>
+        )}
 
         {/* Pet Photo Scanner Banner */}
         <Link

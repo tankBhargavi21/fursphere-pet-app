@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Heart, Plus, Star, Check } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Heart, Plus, Star, Check, Zap } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function ProductCard({ product }) {
+  const navigate = useNavigate();
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const { isAuthenticated } = useAuth();
+
   const [added, setAdded] = useState(false);
   const [adding, setAdding] = useState(false);
 
@@ -21,6 +25,17 @@ export default function ProductCard({ product }) {
     setAdding(false);
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
+  };
+
+  const handleBuyNow = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: { pathname: '/checkout' } } });
+      return;
+    }
+    await addToCart(productId, 1);
+    navigate('/checkout');
   };
 
   const handleToggleWishlist = async (e) => {
@@ -92,35 +107,48 @@ export default function ProductCard({ product }) {
           </p>
         </div>
 
-        {/* Price & Add to Cart button */}
-        <div className="flex items-center justify-between pt-3 mt-2 border-t border-slate-50">
-          <div>
-            <div className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-              ₹{product.price.toLocaleString('en-IN')}
-            </div>
-            {product.originalPrice && (
-              <div className="text-[11px] text-slate-400 line-through">
-                ₹{product.originalPrice.toLocaleString('en-IN')}
+        {/* Price & Action Buttons (Buy Now & Add to Cart) */}
+        <div className="pt-3 mt-2 border-t border-slate-50 space-y-2">
+          <div className="flex items-baseline justify-between">
+            <div>
+              <div className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                ₹{product.price.toLocaleString('en-IN')}
               </div>
-            )}
+              {product.originalPrice && (
+                <div className="text-[11px] text-slate-400 line-through">
+                  ₹{product.originalPrice.toLocaleString('en-IN')}
+                </div>
+              )}
+            </div>
+            
+            {/* Quick Add to Cart button */}
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={adding}
+              className={`w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-md ${
+                added
+                  ? 'bg-emerald-600 text-white scale-105'
+                  : 'bg-[#0d5c46] text-white hover:bg-[#0a4837] active:scale-95 shadow-emerald-950/15'
+              }`}
+              title="Add to Cart"
+            >
+              {added ? (
+                <Check className="w-4 h-4 animate-in zoom-in" />
+              ) : (
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+              )}
+            </button>
           </div>
 
+          {/* Buy Now Button */}
           <button
             type="button"
-            onClick={handleAddToCart}
-            disabled={adding}
-            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-md ${
-              added
-                ? 'bg-emerald-600 text-white scale-105'
-                : 'bg-[#0d5c46] text-white hover:bg-[#0a4837] active:scale-95 shadow-emerald-900/15'
-            }`}
-            title="Add to Cart"
+            onClick={handleBuyNow}
+            className="w-full py-2 px-3 rounded-xl bg-emerald-50/80 hover:bg-[#0d5c46] border border-emerald-300 hover:border-[#0d5c46] text-[#0d5c46] hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer shadow-2xs active:scale-[0.98]"
           >
-            {added ? (
-              <Check className="w-5 h-5 animate-in zoom-in" />
-            ) : (
-              <Plus className="w-5 h-5 stroke-[2.5]" />
-            )}
+            <Zap className="w-3.5 h-3.5 fill-current" />
+            Buy Now
           </button>
         </div>
 

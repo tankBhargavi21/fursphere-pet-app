@@ -1,7 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Sparkles, Send, Trash2, Bot, User, AlertCircle, ShieldAlert } from 'lucide-react';
+import { ChevronLeft, Sparkles, Send, Trash2, Bot, User, AlertCircle, ShieldAlert, X } from 'lucide-react';
 import { apiFetch } from '../services/api';
+
+const DEFAULT_WELCOME = {
+  id: 'welcome_1',
+  role: 'assistant',
+  content: "Hi! I'm your FurSphere AI assistant. Ask me anything about your pet's health, food, behavior or care.",
+};
 
 export default function AiChat() {
   const navigate = useNavigate();
@@ -14,16 +20,32 @@ export default function AiChat() {
     'What daily care does my puppy need?',
   ];
 
-  const [messages, setMessages] = useState([
-    {
-      id: 'welcome_1',
-      role: 'assistant',
-      content: "Hi! I'm your FurSphere AI assistant. Ask me anything about your pet's health, food, behavior or care.",
-    },
-  ]);
+  const [messages, setMessages] = useState(() => {
+    try {
+      const saved = localStorage.getItem('fursphere_chat_messages');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Could not load chat messages', e);
+    }
+    return [DEFAULT_WELCOME];
+  });
+
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // Persist messages in localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('fursphere_chat_messages', JSON.stringify(messages));
+    } catch (e) {
+      console.warn('Could not save chat messages', e);
+    }
+  }, [messages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -89,20 +111,30 @@ export default function AiChat() {
     }
   };
 
+  // Remove individual message
+  const removeMessage = (idToRemove) => {
+    setMessages((prev) => {
+      const updated = prev.filter((m) => m.id !== idToRemove);
+      return updated.length > 0 ? updated : [DEFAULT_WELCOME];
+    });
+  };
+
+  // Clear / remove all messages
   const clearChat = () => {
-    setMessages([
-      {
-        id: 'welcome_' + Date.now(),
-        role: 'assistant',
-        content: "Chat cleared! How can I assist you with your furry best friend today?",
-      },
-    ]);
+    const freshWelcome = {
+      id: 'welcome_' + Date.now(),
+      role: 'assistant',
+      content: "All chat history removed! How can I assist you with your furry best friend today?",
+    };
+    setMessages([freshWelcome]);
+    localStorage.removeItem('fursphere_chat_messages');
+    setShowClearConfirm(false);
   };
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-4 pb-24 lg:pb-8 flex flex-col h-[calc(100vh-5rem)]">
       
-      {/* Header matching Panel 5: < AI Chat + Gemini AI badge + Clear option */}
+      {/* Header: < AI Chat + Gemini AI badge + Remove/Clear Chat Option */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
         <div className="flex items-center gap-3">
           <button
@@ -126,16 +158,44 @@ export default function AiChat() {
           </div>
         </div>
 
-        <button
-          onClick={clearChat}
-          className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
-          title="Clear Conversation"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        {/* Remove Chat / Clear All Option */}
+        <div className="relative">
+          <button
+            onClick={() => setShowClearConfirm(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold transition-colors cursor-pointer"
+            title="Remove all chat messages"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Remove Chat</span>
+          </button>
+
+          {/* Confirm removal popup modal */}
+          {showClearConfirm && (
+            <div className="absolute right-0 top-10 w-64 p-3 bg-white border border-slate-200 shadow-xl rounded-2xl z-50 animate-in fade-in zoom-in-95">
+              <p className="text-xs font-bold text-slate-800 mb-1">Clear all chat messages?</p>
+              <p className="text-[11px] text-slate-500 mb-3">This will permanently delete your current conversation history.</p>
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowClearConfirm(false)}
+                  className="px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={clearChat}
+                  className="px-3 py-1 text-xs font-bold bg-rose-600 text-white rounded-lg hover:bg-rose-700 cursor-pointer"
+                >
+                  Confirm Delete
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Suggested Pet Questions (Matches Panel 5 Pills) */}
+      {/* Suggested Pet Questions */}
       <div className="py-2.5 overflow-x-auto scrollbar-none shrink-0 border-b border-slate-50">
         <div className="flex items-center gap-2 min-w-max">
           {suggestedQuestions.map((q, idx) => (
@@ -167,7 +227,7 @@ export default function AiChat() {
           return (
             <div
               key={msg.id}
-              className={`flex items-start gap-2.5 ${isUser ? 'justify-end' : 'justify-start'}`}
+              className={`flex items-start gap-2.5 group relative ${isUser ? 'justify-end' : 'justify-start'}`}
             >
               {!isUser && (
                 <div className="w-8 h-8 rounded-full bg-[#0d5c46] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
@@ -175,20 +235,35 @@ export default function AiChat() {
                 </div>
               )}
 
-              <div
-                className={`max-w-[85%] sm:max-w-[75%] rounded-3xl px-4 py-3 text-xs sm:text-sm leading-relaxed whitespace-pre-line shadow-xs ${
-                  isUser
-                    ? 'bg-[#0d5c46] text-white rounded-tr-none'
-                    : 'bg-white text-slate-800 border border-slate-100 rounded-tl-none'
-                }`}
-              >
-                {msg.content}
-                {msg.provider && (
-                  <div className="text-[10px] text-slate-400 mt-2 pt-1 border-t border-slate-100 flex items-center gap-1">
-                    <Sparkles className="w-2.5 h-2.5 text-sky-500" />
-                    <span>Powered by {msg.provider}</span>
-                  </div>
-                )}
+              {/* Message Bubble + Delete button on hover */}
+              <div className="relative group/bubble max-w-[85%] sm:max-w-[75%]">
+                <div
+                  className={`rounded-3xl px-4 py-3 text-xs sm:text-sm leading-relaxed whitespace-pre-line shadow-xs ${
+                    isUser
+                      ? 'bg-[#0d5c46] text-white rounded-tr-none'
+                      : 'bg-white text-slate-800 border border-slate-100 rounded-tl-none'
+                  }`}
+                >
+                  {msg.content}
+                  {msg.provider && (
+                    <div className="text-[10px] text-slate-400 mt-2 pt-1 border-t border-slate-100 flex items-center gap-1">
+                      <Sparkles className="w-2.5 h-2.5 text-sky-500" />
+                      <span>Powered by {msg.provider}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Individual message remove/delete button */}
+                <button
+                  type="button"
+                  onClick={() => removeMessage(msg.id)}
+                  className={`absolute top-1 p-1 rounded-full bg-white/90 shadow-sm border border-slate-200 text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all opacity-0 group-hover/bubble:opacity-100 cursor-pointer ${
+                    isUser ? '-left-7' : '-right-7'
+                  }`}
+                  title="Remove this message"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
               </div>
 
               {isUser && (
