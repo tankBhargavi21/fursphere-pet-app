@@ -54,15 +54,27 @@ router.post('/send-otp', async (req, res) => {
     if (process.env.FAST2SMS_API_KEY) {
       try {
         const clean10Digits = phone.replace(/\D/g, '').slice(-10);
-        const fastRes = await fetch(
+        let fastRes = await fetch(
           `https://www.fast2sms.com/dev/bulkV2?authorization=${process.env.FAST2SMS_API_KEY}&route=otp&variables_values=${otp}&numbers=${clean10Digits}`
         );
-        const fastData = await fastRes.json();
+        let fastData = await fastRes.json();
+
+        // If OTP route asks for verification, try Quick SMS route as well
+        if (!fastData || !fastData.return) {
+          const quickRes = await fetch(
+            `https://www.fast2sms.com/dev/bulkV2?authorization=${process.env.FAST2SMS_API_KEY}&route=q&message=Your%20FurSphere%20OTP%20is%20${otp}&language=english&flash=0&numbers=${clean10Digits}`
+          );
+          const quickData = await quickRes.json();
+          if (quickData && quickData.return) {
+            fastData = quickData;
+          }
+        }
+
         if (fastData && fastData.return) {
           providerSent = true;
           console.log(`[FurSphere Auth] Real Fast2SMS sent successfully to ${clean10Digits}!`);
         } else {
-          console.warn('[FurSphere Auth] Fast2SMS response:', fastData?.message || fastData);
+          console.warn('[FurSphere Auth] Fast2SMS gateway status:', fastData?.message || fastData);
         }
       } catch (fErr) {
         console.error('[FurSphere Auth] Fast2SMS dispatch error:', fErr.message);
