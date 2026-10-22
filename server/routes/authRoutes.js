@@ -49,10 +49,29 @@ router.post('/send-otp', async (req, res) => {
     console.log(`[FurSphere Auth] OTP generated for ${phone}: ${otp}`);
 
     let providerSent = false;
-    // Real Twilio SMS integration if configured
-    if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
+
+    // 1. Real Fast2SMS integration (Instant real SMS to Indian Mobile Numbers)
+    if (process.env.FAST2SMS_API_KEY) {
       try {
-        // Dynamic import if twilio was configured
+        const clean10Digits = phone.replace(/\D/g, '').slice(-10);
+        const fastRes = await fetch(
+          `https://www.fast2sms.com/dev/bulkV2?authorization=${process.env.FAST2SMS_API_KEY}&route=otp&variables_values=${otp}&numbers=${clean10Digits}`
+        );
+        const fastData = await fastRes.json();
+        if (fastData && fastData.return) {
+          providerSent = true;
+          console.log(`[FurSphere Auth] Real Fast2SMS sent successfully to ${clean10Digits}!`);
+        } else {
+          console.warn('[FurSphere Auth] Fast2SMS response:', fastData?.message || fastData);
+        }
+      } catch (fErr) {
+        console.error('[FurSphere Auth] Fast2SMS dispatch error:', fErr.message);
+      }
+    }
+
+    // 2. Real Twilio SMS integration if configured (Global numbers)
+    if (!providerSent && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
+      try {
         const twilio = (await import('twilio')).default;
         const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
         await client.messages.create({

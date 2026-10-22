@@ -1,6 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Sparkles, Send, Trash2, Bot, User, AlertCircle, ShieldAlert, X } from 'lucide-react';
+import {
+  ChevronLeft,
+  Sparkles,
+  Send,
+  Trash2,
+  Bot,
+  User,
+  ShieldAlert,
+  History,
+  Plus,
+  MessageSquare,
+  Clock,
+  X,
+  ChevronRight
+} from 'lucide-react';
 import { apiFetch } from '../services/api';
 
 const DEFAULT_WELCOME = {
@@ -8,6 +22,13 @@ const DEFAULT_WELCOME = {
   role: 'assistant',
   content: "Hi! I'm your FurSphere AI assistant. Ask me anything about your pet's health, food, behavior or care.",
 };
+
+const createNewSession = () => ({
+  id: 'session_' + Date.now(),
+  title: 'New Pet Consultation',
+  createdAt: new Date().toISOString(),
+  messages: [DEFAULT_WELCOME],
+});
 
 export default function AiChat() {
   const navigate = useNavigate();
@@ -20,32 +41,42 @@ export default function AiChat() {
     'What daily care does my puppy need?',
   ];
 
-  const [messages, setMessages] = useState(() => {
+  // Sessions list
+  const [sessions, setSessions] = useState(() => {
     try {
-      const saved = localStorage.getItem('fursphere_chat_messages');
+      const saved = localStorage.getItem('fursphere_chat_sessions');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch (e) {
-      console.warn('Could not load chat messages', e);
+      console.warn('Could not load chat sessions', e);
     }
-    return [DEFAULT_WELCOME];
+    return [createNewSession()];
   });
 
+  const [activeSessionId, setActiveSessionId] = useState(() => {
+    return sessions[0]?.id || 'session_' + Date.now();
+  });
+
+  const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Persist messages in localStorage
+  // Active session object
+  const activeSession = sessions.find((s) => s.id === activeSessionId) || sessions[0] || createNewSession();
+  const messages = activeSession.messages || [DEFAULT_WELCOME];
+
+  // Persist sessions
   useEffect(() => {
     try {
-      localStorage.setItem('fursphere_chat_messages', JSON.stringify(messages));
+      localStorage.setItem('fursphere_chat_sessions', JSON.stringify(sessions));
     } catch (e) {
-      console.warn('Could not save chat messages', e);
+      console.warn('Could not save chat sessions', e);
     }
-  }, [messages]);
+  }, [sessions]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -55,6 +86,38 @@ export default function AiChat() {
     scrollToBottom();
   }, [messages, loading]);
 
+  // Start a new chat session
+  const handleNewChat = () => {
+    const newSession = createNewSession();
+    setSessions((prev) => [newSession, ...prev]);
+    setActiveSessionId(newSession.id);
+    setShowHistoryDrawer(false);
+  };
+
+  // Switch to another session
+  const handleSelectSession = (id) => {
+    setActiveSessionId(id);
+    setShowHistoryDrawer(false);
+  };
+
+  // Delete a session from history
+  const handleDeleteSession = (e, sessionId) => {
+    e.stopPropagation();
+    setSessions((prev) => {
+      const filtered = prev.filter((s) => s.id !== sessionId);
+      if (filtered.length === 0) {
+        const fresh = createNewSession();
+        setActiveSessionId(fresh.id);
+        return [fresh];
+      }
+      if (activeSessionId === sessionId) {
+        setActiveSessionId(filtered[0].id);
+      }
+      return filtered;
+    });
+  };
+
+  // Send message
   const handleSendMessage = async (textToSend) => {
     const text = textToSend || inputMessage;
     if (!text || !text.trim() || loading) return;
@@ -65,7 +128,24 @@ export default function AiChat() {
       content: text.trim(),
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    // Update active session with user message and set title if first user message
+    setSessions((prev) =>
+      prev.map((s) => {
+        if (s.id === activeSessionId) {
+          const isFirstUserMsg = !s.messages.some((m) => m.role === 'user');
+          const title = isFirstUserMsg
+            ? text.trim().slice(0, 32) + (text.length > 32 ? '...' : '')
+            : s.title;
+          return {
+            ...s,
+            title,
+            messages: [...s.messages, userMsg],
+          };
+        }
+        return s;
+      })
+    );
+
     setInputMessage('');
     setLoading(true);
 
@@ -90,15 +170,37 @@ export default function AiChat() {
           content: res.reply,
           provider: res.provider,
         };
-        setMessages((prev) => [...prev, botMsg]);
+
+        setSessions((prev) =>
+          prev.map((s) => {
+            if (s.id === activeSessionId) {
+              return {
+                ...s,
+                messages: [...s.messages, botMsg],
+              };
+            }
+            return s;
+          })
+        );
       }
     } catch (err) {
       const errorMsg = {
         id: 'err_' + Date.now(),
         role: 'assistant',
-        content: '⚠️ Oops! I encountered an issue connecting to the pet-care knowledge service. Please try again in a moment.\n\nNote: For urgent pet health emergencies, please call your local emergency veterinary clinic directly.',
+        content:
+          '⚠️ Oops! I encountered an issue connecting to the pet-care knowledge service. Please try again in a moment.\n\nNote: For urgent pet health emergencies, please call your local emergency veterinary clinic directly.',
       };
-      setMessages((prev) => [...prev, errorMsg]);
+      setSessions((prev) =>
+        prev.map((s) => {
+          if (s.id === activeSessionId) {
+            return {
+              ...s,
+              messages: [...s.messages, errorMsg],
+            };
+          }
+          return s;
+        })
+      );
     } finally {
       setLoading(false);
     }
@@ -111,30 +213,48 @@ export default function AiChat() {
     }
   };
 
-  // Remove individual message
+  // Remove individual message from active session
   const removeMessage = (idToRemove) => {
-    setMessages((prev) => {
-      const updated = prev.filter((m) => m.id !== idToRemove);
-      return updated.length > 0 ? updated : [DEFAULT_WELCOME];
-    });
+    setSessions((prev) =>
+      prev.map((s) => {
+        if (s.id === activeSessionId) {
+          const updated = s.messages.filter((m) => m.id !== idToRemove);
+          return {
+            ...s,
+            messages: updated.length > 0 ? updated : [DEFAULT_WELCOME],
+          };
+        }
+        return s;
+      })
+    );
   };
 
-  // Clear / remove all messages
-  const clearChat = () => {
+  // Clear current active session messages
+  const clearCurrentChat = () => {
     const freshWelcome = {
       id: 'welcome_' + Date.now(),
       role: 'assistant',
-      content: "All chat history removed! How can I assist you with your furry best friend today?",
+      content: "Chat cleared! How can I assist you with your furry best friend today?",
     };
-    setMessages([freshWelcome]);
-    localStorage.removeItem('fursphere_chat_messages');
+    setSessions((prev) =>
+      prev.map((s) => {
+        if (s.id === activeSessionId) {
+          return {
+            ...s,
+            title: 'New Pet Consultation',
+            messages: [freshWelcome],
+          };
+        }
+        return s;
+      })
+    );
     setShowClearConfirm(false);
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-4 pb-24 lg:pb-8 flex flex-col h-[calc(100vh-5rem)]">
+    <div className="max-w-4xl mx-auto px-4 py-4 pb-24 lg:pb-8 flex flex-col h-[calc(100vh-5rem)] relative">
       
-      {/* Header: < AI Chat + Gemini AI badge + Remove/Clear Chat Option */}
+      {/* Header: Back + AI Chat Title + History Button + New Chat + Remove */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
         <div className="flex items-center gap-3">
           <button
@@ -154,44 +274,74 @@ export default function AiChat() {
                 Gemini AI
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">FurSphere Pet Health & Nutrition</p>
+            <p className="text-[11px] text-slate-400 truncate max-w-[200px] sm:max-w-xs">
+              {activeSession.title}
+            </p>
           </div>
         </div>
 
-        {/* Remove Chat / Clear All Option */}
-        <div className="relative">
+        {/* Action Controls: History Drawer Button, New Chat, and Remove Chat */}
+        <div className="flex items-center gap-2">
+          {/* History Button */}
           <button
-            onClick={() => setShowClearConfirm(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-bold transition-colors cursor-pointer"
-            title="Remove all chat messages"
+            onClick={() => setShowHistoryDrawer(!showHistoryDrawer)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              showHistoryDrawer
+                ? 'bg-sky-50 text-sky-700 border-sky-300'
+                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+            }`}
+            title="View Chat History"
           >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Remove Chat</span>
+            <History className="w-3.5 h-3.5 text-sky-600" />
+            <span className="hidden sm:inline">History</span>
+            <span className="bg-slate-100 text-slate-600 text-[10px] px-1.5 py-0.2 rounded-full">
+              {sessions.length}
+            </span>
           </button>
 
-          {/* Confirm removal popup modal */}
-          {showClearConfirm && (
-            <div className="absolute right-0 top-10 w-64 p-3 bg-white border border-slate-200 shadow-xl rounded-2xl z-50 animate-in fade-in zoom-in-95">
-              <p className="text-xs font-bold text-slate-800 mb-1">Clear all chat messages?</p>
-              <p className="text-[11px] text-slate-500 mb-3">This will permanently delete your current conversation history.</p>
-              <div className="flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowClearConfirm(false)}
-                  className="px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={clearChat}
-                  className="px-3 py-1 text-xs font-bold bg-rose-600 text-white rounded-lg hover:bg-rose-700 cursor-pointer"
-                >
-                  Confirm Delete
-                </button>
+          {/* New Chat Button */}
+          <button
+            onClick={handleNewChat}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0d5c46] hover:bg-[#0a4837] text-white text-xs font-bold shadow-xs cursor-pointer transition-all"
+            title="Start New Chat"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">New Chat</span>
+          </button>
+
+          {/* Remove Current Chat */}
+          <div className="relative">
+            <button
+              onClick={() => setShowClearConfirm(true)}
+              className="p-1.5 rounded-xl border border-rose-200 text-rose-500 hover:bg-rose-50 cursor-pointer transition-colors"
+              title="Clear active chat"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+
+            {showClearConfirm && (
+              <div className="absolute right-0 top-10 w-64 p-3 bg-white border border-slate-200 shadow-xl rounded-2xl z-50 animate-in fade-in zoom-in-95">
+                <p className="text-xs font-bold text-slate-800 mb-1">Clear current conversation?</p>
+                <p className="text-[11px] text-slate-500 mb-3">Messages in this consultation will be cleared.</p>
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowClearConfirm(false)}
+                    className="px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearCurrentChat}
+                    className="px-3 py-1 text-xs font-bold bg-rose-600 text-white rounded-lg hover:bg-rose-700 cursor-pointer"
+                  >
+                    Confirm Clear
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
@@ -210,7 +360,7 @@ export default function AiChat() {
         </div>
       </div>
 
-      {/* Messages Thread */}
+      {/* Main Messages Thread */}
       <div className="flex-1 overflow-y-auto py-4 space-y-4 pr-1">
         
         {/* Veterinary Notice Box */}
@@ -253,7 +403,7 @@ export default function AiChat() {
                   )}
                 </div>
 
-                {/* Individual message remove/delete button */}
+                {/* Individual message remove button */}
                 <button
                   type="button"
                   onClick={() => removeMessage(msg.id)}
@@ -275,7 +425,7 @@ export default function AiChat() {
           );
         })}
 
-        {/* Loading Indicator with Typing Animation */}
+        {/* Loading Indicator */}
         {loading && (
           <div className="flex items-start gap-2.5">
             <div className="w-8 h-8 rounded-full bg-[#0d5c46] text-white flex items-center justify-center shrink-0">
@@ -293,7 +443,7 @@ export default function AiChat() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Field matching Panel 5 */}
+      {/* Input Field */}
       <div className="shrink-0 pt-2 border-t border-slate-100">
         <form
           onSubmit={(e) => {
@@ -320,6 +470,95 @@ export default function AiChat() {
           </button>
         </form>
       </div>
+
+      {/* Chat History Slide-over Drawer (ChatGPT style) */}
+      {showHistoryDrawer && (
+        <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-xs z-50 flex justify-end animate-in fade-in">
+          <div className="w-80 max-w-full bg-white h-full shadow-2xl p-4 flex flex-col justify-between border-l border-slate-100 animate-in slide-in-from-right duration-200">
+            <div>
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                <div className="flex items-center gap-2">
+                  <History className="w-4 h-4 text-sky-600" />
+                  <h3 className="text-sm font-bold text-slate-900">Chat History</h3>
+                </div>
+                <button
+                  onClick={() => setShowHistoryDrawer(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Start New Chat Button */}
+              <button
+                onClick={handleNewChat}
+                className="w-full py-2.5 px-3 rounded-2xl bg-[#0d5c46] hover:bg-[#0a4837] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs cursor-pointer mb-3"
+              >
+                <Plus className="w-4 h-4" />
+                Start New Chat
+              </button>
+
+              {/* List of Previous Sessions */}
+              <div className="space-y-1.5 overflow-y-auto max-h-[calc(100vh-14rem)] pr-1">
+                {sessions.map((sess) => {
+                  const isActive = sess.id === activeSessionId;
+                  const dateStr = new Date(sess.createdAt).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                  });
+
+                  return (
+                    <div
+                      key={sess.id}
+                      onClick={() => handleSelectSession(sess.id)}
+                      className={`group flex items-center justify-between p-2.5 rounded-2xl border text-xs cursor-pointer transition-all ${
+                        isActive
+                          ? 'border-[#0d5c46] bg-emerald-50/70 text-[#0d5c46] font-bold shadow-2xs'
+                          : 'border-slate-100 hover:border-slate-200 hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 pr-2">
+                        <MessageSquare className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[#0d5c46]' : 'text-slate-400'}`} />
+                        <div className="min-w-0">
+                          <p className="truncate text-xs">{sess.title}</p>
+                          <span className="text-[10px] text-slate-400 font-normal">{dateStr}</span>
+                        </div>
+                      </div>
+
+                      {/* Delete session icon */}
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteSession(e, sess.id)}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all cursor-pointer"
+                        title="Delete this chat session"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Clear All Sessions Option */}
+            <div className="pt-3 border-t border-slate-100">
+              <button
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to delete ALL chat sessions?')) {
+                    const fresh = createNewSession();
+                    setSessions([fresh]);
+                    setActiveSessionId(fresh.id);
+                    localStorage.removeItem('fursphere_chat_sessions');
+                  }
+                }}
+                className="w-full py-2 text-center text-xs font-semibold text-rose-500 hover:bg-rose-50 rounded-xl cursor-pointer"
+              >
+                Clear All History Sessions
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
