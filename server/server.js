@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 import { connectDB } from './config/db.js';
@@ -45,6 +46,21 @@ app.use('/api/pets', petRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/ai', aiRoutes);
 
+// Serve Static Frontend (Vite build) directly on port 5000 as well
+const clientDist = path.join(__dirname, '..', 'client', 'dist');
+if (fs.existsSync(clientDist)) {
+  app.use(express.static(clientDist));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+} else {
+  // If not yet built, redirect to Vite dev server
+  app.get('/', (req, res) => {
+    res.redirect('http://localhost:5173');
+  });
+}
+
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error('[FurSphere Server Error]', err.stack || err.message);
@@ -61,7 +77,7 @@ const startServer = async () => {
 
   app.listen(PORT, () => {
     console.log(`🐾 FurSphere Server running on http://localhost:${PORT}`);
-    console.log(`📡 Ready to serve FurSphere Web Application`);
+    console.log(`📡 Ready to serve FurSphere Web Application on http://localhost:${PORT}`);
   });
 };
 
