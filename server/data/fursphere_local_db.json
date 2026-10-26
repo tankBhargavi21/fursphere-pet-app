@@ -1,5 +1,24 @@
 {
-  "users": [],
+  "users": [
+    {
+      "_id": "user_1793010668586",
+      "name": "bhargavi tank",
+      "email": "",
+      "phone": "+919726604254",
+      "password": "$2b$10$SqhZJQpt8oprvZfQkFImQerh.f8ql34iXfALzCeM7dp0myWYP5AiG",
+      "addresses": [
+        {
+          "title": "Home",
+          "street": "123, Green Park Society",
+          "city": "Ahmedabad",
+          "state": "Gujarat",
+          "pincode": "380015",
+          "isDefault": true
+        }
+      ],
+      "createdAt": "2026-10-26T10:31:08.586Z"
+    }
+  ],
   "products": [
     {
       "_id": "prod_101",
@@ -271,7 +290,12 @@
   ],
   "pets": [],
   "carts": {},
-  "wishlists": {},
+  "wishlists": {
+    "user_1793010668586": [
+      "prod_101",
+      "prod_102"
+    ]
+  },
   "orders": [],
   "otps": {}
 }

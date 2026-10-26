@@ -13,6 +13,7 @@ import wishlistRoutes from './routes/wishlistRoutes.js';
 import petRoutes from './routes/petRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 
 dotenv.config();
 
@@ -45,6 +46,7 @@ app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/pets', petRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Serve Static Frontend (Vite build) directly on port 5000 as well
 const clientDist = path.join(__dirname, '..', 'client', 'dist');

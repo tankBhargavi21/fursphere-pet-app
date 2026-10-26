@@ -12,6 +12,8 @@ import {
   Package,
   Dog,
   ChevronDown,
+  Shield,
+  Info,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -116,6 +118,14 @@ export default function Navbar() {
               <Dog className="w-3.5 h-3.5 text-amber-500" />
               My Pets
             </Link>
+            <Link
+              to="/about"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                isActive('/about') ? 'text-[#0d5c46] bg-emerald-50 font-semibold' : 'text-slate-600 hover:text-[#0d5c46] hover:bg-slate-50'
+              }`}
+            >
+              About Us
+            </Link>
           </nav>
 
           {/* Action Icons (Wishlist, Cart, Profile) */}
@@ -146,6 +156,16 @@ export default function Navbar() {
                   {itemCount}
                 </span>
               )}
+            </Link>
+
+            {/* Admin Portal Quick Access */}
+            <Link
+              to="/admin"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-emerald-800 bg-emerald-100/80 hover:bg-emerald-200 transition-colors border border-emerald-300/50"
+              title="Admin Portal (Orders & Catalog)"
+            >
+              <Shield className="w-3.5 h-3.5 text-emerald-700" />
+              <span>Admin</span>
             </Link>
 
             {/* User Profile / Login */}
@@ -200,6 +220,20 @@ export default function Navbar() {
                     >
                       <Package className="w-4 h-4 text-emerald-600" />
                       My Orders & Tracking
+                    </Link>
+
+                    <Link
+                      to="/admin"
+                      onClick={() => setShowUserMenu(false)}
+                      className="flex items-center justify-between px-4 py-2 text-sm text-slate-700 hover:bg-emerald-50 hover:text-[#0d5c46] font-semibold"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Shield className="w-4 h-4 text-[#0d5c46]" />
+                        Admin Panel
+                      </div>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
+                        Orders & Stock
+                      </span>
                     </Link>
 
                     <div className="border-t border-slate-100 my-1" />

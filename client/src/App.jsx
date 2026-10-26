@@ -24,6 +24,8 @@ import AiChat from './pages/AiChat';
 import PetScanner from './pages/PetScanner';
 import Pets from './pages/Pets';
 import Profile from './pages/Profile';
+import About from './pages/About';
+import Admin from './pages/Admin';
 
 function Layout() {
   const location = useLocation();
@@ -53,6 +55,8 @@ function Layout() {
           <Route path="/scanner" element={<PetScanner />} />
           <Route path="/pets" element={<Pets />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/admin" element={<Admin />} />
         </Routes>
       </main>
 
