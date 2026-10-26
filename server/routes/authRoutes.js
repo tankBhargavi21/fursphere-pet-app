@@ -185,6 +185,7 @@ router.post('/verify-otp', async (req, res) => {
         name: user.name,
         email: user.email || '',
         phone: user.phone,
+        role: user.role || 'user',
         addresses: user.addresses || [],
       },
     });
@@ -225,12 +226,58 @@ router.post('/login', async (req, res) => {
         name: user.name,
         email: user.email || '',
         phone: user.phone || '',
+        role: user.role || 'user',
         addresses: user.addresses || [],
       },
     });
   } catch (error) {
     console.error('Password login error:', error);
     res.status(500).json({ success: false, message: 'Server error during login.' });
+  }
+});
+
+// Dedicated Administrator Login Endpoint
+router.post('/admin-login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Admin email and password are required.' });
+    }
+
+    const user = await findUserByQuery({ email: email.trim().toLowerCase() });
+    if (!user || !user.password) {
+      return res.status(401).json({ success: false, message: 'Invalid admin credentials.' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Incorrect administrator password.' });
+    }
+
+    if (user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access Denied: Only verified FurSphere administrators can access this portal.',
+      });
+    }
+
+    const token = generateToken(user._id);
+    return res.json({
+      success: true,
+      message: 'Admin authorization successful! Welcome to FurSphere Admin.',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: 'admin',
+        addresses: user.addresses || [],
+      },
+    });
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({ success: false, message: 'Server error during admin authentication.' });
   }
 });
 

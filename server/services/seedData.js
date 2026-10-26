@@ -216,3 +216,65 @@ export const defaultProducts = [
     image: 'https://images.unsplash.com/photo-1534361960057-19889db98a1e?w=600&auto=format&fit=crop&q=80',
   }
 ];
+
+export const ensureAdminUser = async () => {
+  try {
+    const bcrypt = (await import('bcryptjs')).default;
+    const User = (await import('../models/User.js')).default;
+    const { getDBStatus } = await import('../config/db.js');
+    const { LocalStore } = await import('./storage.js');
+    const { isConnected } = getDBStatus();
+
+    const adminEmail = 'admin@fursphere.com';
+    const defaultPassword = 'admin123';
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+
+    if (isConnected) {
+      let admin = await User.findOne({ email: adminEmail });
+      if (!admin) {
+        console.log('[FurSphere Auth] Creating default administrator account (admin@fursphere.com)...');
+        await User.create({
+          name: 'FurSphere Admin',
+          email: adminEmail,
+          phone: '9999999999',
+          password: hashedPassword,
+          role: 'admin',
+          addresses: [{
+            title: 'FurSphere HQ',
+            street: 'FurSphere House, Ring Road',
+            city: 'Ahmedabad',
+            state: 'Gujarat',
+            pincode: '380015',
+            isDefault: true
+          }]
+        });
+        console.log('[FurSphere Auth] Default admin created successfully: admin@fursphere.com / admin123');
+      } else if (admin.role !== 'admin') {
+        admin.role = 'admin';
+        await admin.save();
+      }
+    } else {
+      let users = LocalStore.get('users') || [];
+      let admin = users.find((u) => u.email === adminEmail);
+      if (!admin) {
+        admin = {
+          _id: 'user_admin_01',
+          name: 'FurSphere Admin',
+          email: adminEmail,
+          phone: '9999999999',
+          password: hashedPassword,
+          role: 'admin',
+          addresses: [],
+          createdAt: new Date().toISOString()
+        };
+        users.push(admin);
+        LocalStore.set('users', users);
+      } else {
+        admin.role = 'admin';
+        LocalStore.set('users', users);
+      }
+    }
+  } catch (err) {
+    console.error('[FurSphere Auth] Error ensuring admin user:', err.message);
+  }
+};

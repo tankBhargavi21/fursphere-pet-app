@@ -5,8 +5,23 @@ import User from '../models/User.js';
 import { getDBStatus } from '../config/db.js';
 import { LocalStore } from '../services/storage.js';
 import { defaultProducts } from '../services/seedData.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Strict Administrator Authorization Middleware
+const adminAuth = (req, res, next) => {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Access Denied: Only FurSphere administrators can perform this action.',
+    });
+  }
+  next();
+};
+
+// Protect all /api/admin endpoints with auth and admin role check
+router.use(authMiddleware, adminAuth);
 
 // Helper to calculate timeline based on new status
 const updateTimelineStatus = (timeline, newStatus) => {

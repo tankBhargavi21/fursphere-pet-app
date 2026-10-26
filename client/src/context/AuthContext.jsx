@@ -74,6 +74,21 @@ export const AuthProvider = ({ children }) => {
     return res;
   };
 
+  const loginAdmin = async (email, password) => {
+    const res = await apiFetch('/auth/admin-login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (res.success && res.token) {
+      setAuthToken(res.token);
+      setToken(res.token);
+      setUser(res.user);
+      localStorage.setItem('fursphere_user', JSON.stringify(res.user));
+    }
+    return res;
+  };
+
   const register = async ({ name, email, phone, password }) => {
     const res = await apiFetch('/auth/register', {
       method: 'POST',
@@ -133,6 +148,7 @@ export const AuthProvider = ({ children }) => {
         loginWithPhoneOtp,
         sendPhoneOtp,
         loginWithPassword,
+        loginAdmin,
         register,
         logout,
         updateProfile,

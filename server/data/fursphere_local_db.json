@@ -17,6 +17,16 @@
         }
       ],
       "createdAt": "2026-10-26T10:31:08.586Z"
+    },
+    {
+      "_id": "user_admin_01",
+      "name": "FurSphere Admin",
+      "email": "admin@fursphere.com",
+      "phone": "9999999999",
+      "password": "$2b$10$Z1o/CH.Iq2.5Wbb1JCY84uBFZPyJLXY4vMF1xelTazMecVZC3nGGi",
+      "role": "admin",
+      "addresses": [],
+      "createdAt": "2026-10-26T14:16:46.606Z"
     }
   ],
   "products": [

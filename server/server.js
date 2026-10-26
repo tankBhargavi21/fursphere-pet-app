@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { connectDB } from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import productRoutes, { ensureProductsSeeded } from './routes/productRoutes.js';
+import { ensureAdminUser } from './services/seedData.js';
 import cartRoutes from './routes/cartRoutes.js';
 import wishlistRoutes from './routes/wishlistRoutes.js';
 import petRoutes from './routes/petRoutes.js';
@@ -76,6 +77,7 @@ app.use((err, req, res, next) => {
 const startServer = async () => {
   await connectDB();
   await ensureProductsSeeded();
+  await ensureAdminUser();
 
   app.listen(PORT, () => {
     console.log(`🐾 FurSphere Server running on http://localhost:${PORT}`);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Package,
   ShoppingBag,
@@ -23,12 +23,26 @@ import {
   Layers,
   MapPin,
   Calendar,
-  X
+  X,
+  Shield,
+  Lock,
+  LogOut,
+  KeyRound
 } from 'lucide-react';
 import { apiFetch } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function Admin() {
-  const [activeTab, setActiveTab] = useState('orders'); // 'orders', 'products', 'users', 'overview'
+  const navigate = useNavigate();
+  const { user, isAuthenticated, loginAdmin, logout } = useAuth();
+
+  // Admin Login form states
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminLoggingIn, setAdminLoggingIn] = useState(false);
+  const [adminAuthError, setAdminAuthError] = useState(null);
+
+  const [activeTab, setActiveTab] = useState('orders'); // 'orders', 'products', 'users'
   const [stats, setStats] = useState(null);
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
@@ -66,6 +80,9 @@ export default function Admin() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
+  // Check if current authenticated user is an administrator
+  const isAdmin = isAuthenticated && user?.role === 'admin';
+
   // Fetch all admin data
   const fetchData = async () => {
     try {
@@ -83,7 +100,7 @@ export default function Admin() {
       if (usersRes.success) setUsers(usersRes.users || []);
     } catch (err) {
       console.error('[Admin Fetch Error]', err);
-      showToast('Failed to load some admin data.', 'error');
+      showToast('Failed to load admin data.', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -91,8 +108,38 @@ export default function Admin() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (isAdmin) {
+      fetchData();
+    } else {
+      setLoading(false);
+    }
+  }, [isAdmin]);
+
+  // Handle Admin Login submission
+  const handleAdminLoginSubmit = async (e) => {
+    e.preventDefault();
+    setAdminAuthError(null);
+    setAdminLoggingIn(true);
+
+    try {
+      const res = await loginAdmin(adminEmail.trim(), adminPassword);
+      if (res.success) {
+        showToast('Admin authorization verified! Welcome to FurSphere Admin.');
+      } else {
+        setAdminAuthError(res.message || 'Authentication failed. Please verify credentials.');
+      }
+    } catch (err) {
+      setAdminAuthError('Server error while authenticating admin.');
+    } finally {
+      setAdminLoggingIn(false);
+    }
+  };
+
+  const handleFillDemoAdmin = () => {
+    setAdminEmail('admin@fursphere.com');
+    setAdminPassword('admin123');
+    setAdminAuthError(null);
+  };
 
   // Update order status handler
   const handleUpdateOrderStatus = async (orderId, newStatus) => {
@@ -108,7 +155,6 @@ export default function Admin() {
           prev.map((ord) => (ord._id === orderId ? { ...ord, orderStatus: newStatus, timeline: res.order.timeline } : ord))
         );
         showToast(res.message || `Order status updated to ${newStatus}!`);
-        // Refresh stats
         apiFetch('/admin/stats').then((s) => s.success && setStats(s.stats));
       } else {
         showToast(res.message || 'Failed to update order status.', 'error');
@@ -165,7 +211,6 @@ export default function Admin() {
       }
 
       if (editingProduct) {
-        // Edit existing product
         const res = await apiFetch(`/admin/products/${editingProduct._id || editingProduct.id}`, {
           method: 'PUT',
           body: JSON.stringify(productForm),
@@ -178,7 +223,6 @@ export default function Admin() {
           showToast(res.message || 'Failed to update product.', 'error');
         }
       } else {
-        // Create new product
         const res = await apiFetch('/admin/products', {
           method: 'POST',
           body: JSON.stringify(productForm),
@@ -246,6 +290,127 @@ export default function Admin() {
     return matchesStatus && matchesSearch;
   });
 
+  // STRICT ACCESS GUARD: ONLY ADMIN CAN LOG IN & VIEW
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-[#07241c] flex items-center justify-center p-4 py-16">
+        <div className="max-w-md w-full bg-slate-900/90 backdrop-blur-xl rounded-3xl p-8 border border-slate-800 shadow-2xl space-y-6 text-white relative">
+          
+          {/* Header Icon */}
+          <div className="text-center space-y-3">
+            <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-[#0d5c46] to-emerald-500 text-white flex items-center justify-center mx-auto shadow-lg shadow-emerald-900/40">
+              <Shield className="w-8 h-8" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black tracking-tight text-white">
+                Admin Authentication
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Restricted to authorized FurSphere administrators only.
+              </p>
+            </div>
+          </div>
+
+          {/* If currently logged in as a normal customer */}
+          {isAuthenticated && user?.role !== 'admin' && (
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+              <div>
+                <p className="font-bold">Logged in as: {user.name}</p>
+                <p className="text-[11px] text-amber-200/80 mt-0.5">
+                  Your current account has regular pet parent permissions. Please authenticate with administrator credentials below.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {adminAuthError && (
+            <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2.5">
+              <XCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>{adminAuthError}</span>
+            </div>
+          )}
+
+          {/* Admin Login Form */}
+          <form onSubmit={handleAdminLoginSubmit} className="space-y-4 text-xs">
+            <div>
+              <label className="block text-slate-300 font-bold mb-1.5">
+                Admin Email Address
+              </label>
+              <input
+                type="email"
+                required
+                placeholder="admin@fursphere.com"
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl bg-slate-800/80 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/50"
+              />
+            </div>
+
+            <div>
+              <label className="block text-slate-300 font-bold mb-1.5">
+                Admin Password
+              </label>
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl bg-slate-800/80 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/50"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={adminLoggingIn}
+              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-[#0d5c46] to-emerald-600 hover:from-[#0a4837] hover:to-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-900/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+            >
+              {adminLoggingIn ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Verifying Administrator Access...</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>Verify & Unlock Admin Portal</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          {/* Quick Demo Helper */}
+          <div className="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/60 space-y-2 text-center">
+            <p className="text-[11px] text-slate-400">
+              Default Administrator Credentials:
+            </p>
+            <button
+              type="button"
+              onClick={handleFillDemoAdmin}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-700/80 hover:bg-slate-700 text-emerald-300 text-xs font-mono font-semibold transition-colors cursor-pointer"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Auto-Fill: admin@fursphere.com / admin123</span>
+            </button>
+          </div>
+
+          <div className="text-center pt-2">
+            <Link
+              to="/shop"
+              className="text-xs text-slate-400 hover:text-white transition-colors"
+            >
+              ← Back to FurSphere Shop
+            </Link>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  // LOGGED IN AS ADMIN: RENDER FULL MANAGEMENT PORTAL
   return (
     <div className="min-h-screen bg-slate-50 pb-24 lg:pb-16">
       
@@ -277,19 +442,20 @@ export default function Admin() {
             
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-2xl bg-[#0d5c46] text-white flex items-center justify-center shadow-md">
-                <Layers className="w-6 h-6" />
+                <Shield className="w-6 h-6" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                     FurSphere Admin Portal
                   </h1>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase tracking-wider">
-                    Live
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                    Admin Access
                   </span>
                 </div>
                 <p className="text-xs text-slate-500">
-                  Manage orders, update dispatch statuses, edit catalog products, and monitor pet care sales.
+                  Signed in as <strong className="text-slate-800">{user?.name}</strong> ({user?.email})
                 </p>
               </div>
             </div>
@@ -313,13 +479,17 @@ export default function Admin() {
                 <span className="hidden sm:inline">View Shop</span>
               </Link>
 
-              <Link
-                to="/orders"
-                className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-[#0d5c46] text-xs font-semibold flex items-center gap-1.5 transition-all"
+              <button
+                onClick={() => {
+                  logout();
+                  navigate('/');
+                }}
+                className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Sign out of Admin session"
               >
-                <Truck className="w-4 h-4" />
-                <span className="hidden sm:inline">Customer Tracking</span>
-              </Link>
+                <LogOut className="w-4 h-4" />
+                <span>Exit Admin</span>
+              </button>
             </div>
 
           </div>
@@ -453,7 +623,7 @@ export default function Admin() {
               <div className="relative w-full sm:w-72">
                 <input
                   type="text"
-                  placeholder="Search Order # or city..."
+                  placeholder="Search Order #, city, customer..."
                   value={orderSearchQuery}
                   onChange={(e) => setOrderSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0d5c46]/20"
