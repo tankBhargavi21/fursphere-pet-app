@@ -37,8 +37,8 @@ export default function Admin() {
   const { user, isAuthenticated, loginAdmin, logout } = useAuth();
 
   // Admin Login form states
-  const [adminEmail, setAdminEmail] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
+  const [adminEmail, setAdminEmail] = useState('pixelpilot03@gmail.com');
+  const [adminPassword, setAdminPassword] = useState('admin123');
   const [adminLoggingIn, setAdminLoggingIn] = useState(false);
   const [adminAuthError, setAdminAuthError] = useState(null);
 
@@ -136,7 +136,7 @@ export default function Admin() {
   };
 
   const handleFillDemoAdmin = () => {
-    setAdminEmail('admin@fursphere.com');
+    setAdminEmail('pixelpilot03@gmail.com');
     setAdminPassword('admin123');
     setAdminAuthError(null);
   };
@@ -341,7 +341,7 @@ export default function Admin() {
               <input
                 type="email"
                 required
-                placeholder="admin@fursphere.com"
+                placeholder="pixelpilot03@gmail.com"
                 value={adminEmail}
                 onChange={(e) => setAdminEmail(e.target.value)}
                 className="w-full px-4 py-3 rounded-2xl bg-slate-800/80 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/50"
@@ -392,7 +392,7 @@ export default function Admin() {
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-700/80 hover:bg-slate-700 text-emerald-300 text-xs font-mono font-semibold transition-colors cursor-pointer"
             >
               <KeyRound className="w-3.5 h-3.5" />
-              <span>Auto-Fill: admin@fursphere.com / admin123</span>
+              <span>Auto-Fill: pixelpilot03@gmail.com / admin123</span>
             </button>
           </div>
 

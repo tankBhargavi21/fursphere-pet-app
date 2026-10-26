@@ -244,7 +244,8 @@ router.post('/admin-login', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Admin email and password are required.' });
     }
 
-    const user = await findUserByQuery({ email: email.trim().toLowerCase() });
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await findUserByQuery({ email: cleanEmail });
     if (!user || !user.password) {
       return res.status(401).json({ success: false, message: 'Invalid admin credentials.' });
     }
@@ -254,10 +255,16 @@ router.post('/admin-login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Incorrect administrator password.' });
     }
 
+    // Auto-promote designated admin email
+    if (cleanEmail === 'pixelpilot03@gmail.com' && user.role !== 'admin') {
+      user.role = 'admin';
+      if (user.save) await user.save();
+    }
+
     if (user.role !== 'admin') {
       return res.status(403).json({
         success: false,
-        message: 'Access Denied: Only verified FurSphere administrators can access this portal.',
+        message: 'Access Denied: Only verified FurSphere administrators (pixelpilot03@gmail.com) can access this portal.',
       });
     }
 

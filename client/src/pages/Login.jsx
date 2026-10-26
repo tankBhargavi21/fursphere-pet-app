@@ -1,23 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { PawPrint, ChevronLeft, Eye, EyeOff, CheckCircle2, AlertCircle, Phone, Mail } from 'lucide-react';
+import {
+  PawPrint,
+  ChevronLeft,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  AlertCircle,
+  Phone,
+  Mail,
+  Shield,
+  Lock,
+  KeyRound,
+  RefreshCw
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { loginWithPhoneOtp, sendPhoneOtp, loginWithPassword, isAuthenticated } = useAuth();
+  const { loginWithPhoneOtp, sendPhoneOtp, loginWithPassword, loginAdmin, isAuthenticated, user } = useAuth();
 
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      const from = location.state?.from?.pathname || '/';
-      navigate(from, { replace: true });
+      if (user?.role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        const from = location.state?.from?.pathname || '/';
+        navigate(from, { replace: true });
+      }
     }
-  }, [isAuthenticated, navigate, location]);
+  }, [isAuthenticated, user, navigate, location]);
 
-  // Tabs: 'phone' or 'email'
+  // Tabs: 'phone', 'email', or 'admin'
   const [activeTab, setActiveTab] = useState('phone');
+
+  // Check URL query on mount (e.g. /login?admin=true)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('admin') === 'true' || params.get('tab') === 'admin') {
+      setActiveTab('admin');
+    }
+  }, [location.search]);
 
   // Phone login mode: 'otp' or 'password'
   const [phoneMode, setPhoneMode] = useState('otp');
@@ -29,6 +54,11 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Admin form states
+  const [adminEmail, setAdminEmail] = useState('pixelpilot03@gmail.com');
+  const [adminPassword, setAdminPassword] = useState('admin123');
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
 
   // Status feedback
   const [loading, setLoading] = useState(false);
@@ -59,8 +89,8 @@ export default function Login() {
         setOtpSent(true);
         setCountdown(60);
         if (res.otp) {
-          setOtp(res.otp); // Pre-fill for instant test convenience
-          setInfoMessage(`Code ${res.otp} generated! (Sent or ready to verify)`);
+          setOtp(res.otp);
+          setInfoMessage(`Code ${res.otp} generated! (Ready to verify)`);
         } else {
           setInfoMessage('Verification code sent to your mobile phone.');
         }
@@ -88,7 +118,11 @@ export default function Login() {
       try {
         const res = await loginWithPhoneOtp(fullPhone, otp);
         if (res.success) {
-          navigate('/home');
+          if (res.user?.role === 'admin') {
+            navigate('/admin');
+          } else {
+            navigate('/home');
+          }
         }
       } catch (err) {
         setError(err.message || 'OTP verification failed.');
@@ -96,7 +130,6 @@ export default function Login() {
         setLoading(false);
       }
     } else {
-      // Phone + Password
       if (!password) {
         setError('Please enter your password.');
         return;
@@ -105,7 +138,11 @@ export default function Login() {
       try {
         const res = await loginWithPassword(fullPhone, password);
         if (res.success) {
-          navigate('/home');
+          if (res.user?.role === 'admin') {
+            navigate('/admin');
+          } else {
+            navigate('/home');
+          }
         }
       } catch (err) {
         setError(err.message || 'Invalid phone or password.');
@@ -129,13 +166,48 @@ export default function Login() {
     try {
       const res = await loginWithPassword(email, password);
       if (res.success) {
-        navigate('/home');
+        if (res.user?.role === 'admin' || email.trim().toLowerCase() === 'pixelpilot03@gmail.com') {
+          navigate('/admin');
+        } else {
+          navigate('/home');
+        }
       }
     } catch (err) {
       setError(err.message || 'Invalid email or password.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAdminSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setInfoMessage('');
+
+    if (!adminEmail || !adminPassword) {
+      setError('Please provide admin email and password.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await loginAdmin(adminEmail.trim(), adminPassword);
+      if (res.success) {
+        navigate('/admin');
+      } else {
+        setError(res.message || 'Administrator authentication failed.');
+      }
+    } catch (err) {
+      setError('Network error during admin authentication.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFillAdminDemo = () => {
+    setAdminEmail('pixelpilot03@gmail.com');
+    setAdminPassword('admin123');
+    setError('');
   };
 
   return (
@@ -160,17 +232,23 @@ export default function Login() {
             <span className="text-xl font-black text-[#0d5c46] tracking-tight">FurSphere</span>
           </div>
 
-          <div className="w-9" /> {/* Spacer */}
+          <div className="w-9" />
         </div>
 
         {/* Title & subtitle */}
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Welcome Back</h2>
-          <p className="text-xs text-slate-500 mt-1">Login to continue your pet care journey</p>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+            {activeTab === 'admin' ? 'Admin Portal Access' : 'Welcome Back'}
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            {activeTab === 'admin'
+              ? 'Authorized administrator login with pixelpilot03@gmail.com'
+              : 'Login to continue your pet care journey'}
+          </p>
         </div>
 
-        {/* Tab Toggle: Phone Login vs Email Login */}
-        <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-2xl mb-6">
+        {/* 3-Way Tab Toggle: Phone, Email, Admin */}
+        <div className="grid grid-cols-3 p-1 bg-slate-100 rounded-2xl mb-6">
           <button
             type="button"
             onClick={() => {
@@ -178,14 +256,14 @@ export default function Login() {
               setError('');
               setInfoMessage('');
             }}
-            className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'phone'
                 ? 'bg-white text-[#0d5c46] shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             <Phone className="w-3.5 h-3.5" />
-            Phone Login
+            <span>Phone</span>
           </button>
 
           <button
@@ -195,14 +273,31 @@ export default function Login() {
               setError('');
               setInfoMessage('');
             }}
-            className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'email'
                 ? 'bg-white text-[#0d5c46] shadow-xs'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             <Mail className="w-3.5 h-3.5" />
-            Email Login
+            <span>Email</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('admin');
+              setError('');
+              setInfoMessage('');
+            }}
+            className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'admin'
+                ? 'bg-[#0d5c46] text-white shadow-xs'
+                : 'text-slate-600 hover:text-[#0d5c46]'
+            }`}
+          >
+            <Shield className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+            <span>Admin</span>
           </button>
         </div>
 
@@ -221,11 +316,9 @@ export default function Login() {
           </div>
         )}
 
-        {/* ================= PHONE LOGIN TAB ================= */}
+        {/* ================= 1. PHONE LOGIN TAB ================= */}
         {activeTab === 'phone' && (
           <form onSubmit={handlePhoneSubmit} className="space-y-4">
-            
-            {/* Phone input with country code */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                 Phone Number
@@ -239,83 +332,83 @@ export default function Login() {
                   <option value="+91">🇮🇳 +91</option>
                   <option value="+1">🇺🇸 +1</option>
                   <option value="+44">🇬🇧 +44</option>
-                  <option value="+971">🇦🇪 +971</option>
                 </select>
                 <input
                   type="tel"
-                  placeholder="Enter phone number"
+                  placeholder="Enter 10-digit mobile"
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="w-full px-3 py-2.5 text-sm bg-transparent focus:outline-none text-slate-800 font-medium"
+                  onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
+                  className="w-full px-3 py-2.5 bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none"
+                  maxLength={10}
                 />
               </div>
             </div>
 
-            {/* Mode selector: OTP Login or Password Login */}
-            <div className="flex items-center gap-6 py-1">
-              <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
-                <input
-                  type="radio"
-                  name="phoneMode"
-                  value="otp"
-                  checked={phoneMode === 'otp'}
-                  onChange={() => setPhoneMode('otp')}
-                  className="accent-[#0d5c46] w-4 h-4"
-                />
-                OTP Login
-              </label>
-
-              <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
-                <input
-                  type="radio"
-                  name="phoneMode"
-                  value="password"
-                  checked={phoneMode === 'password'}
-                  onChange={() => setPhoneMode('password')}
-                  className="accent-[#0d5c46] w-4 h-4"
-                />
-                Password Login
-              </label>
+            <div className="flex items-center gap-2 p-1 bg-slate-100/70 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setPhoneMode('otp')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  phoneMode === 'otp' ? 'bg-white text-[#0d5c46] shadow-xs' : 'text-slate-500'
+                }`}
+              >
+                Login via OTP
+              </button>
+              <button
+                type="button"
+                onClick={() => setPhoneMode('password')}
+                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                  phoneMode === 'password' ? 'bg-white text-[#0d5c46] shadow-xs' : 'text-slate-500'
+                }`}
+              >
+                Use Password
+              </button>
             </div>
 
-            {/* OTP Mode Fields */}
             {phoneMode === 'otp' ? (
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Enter 6-Digit OTP
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    maxLength={6}
-                    placeholder="Enter OTP"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 focus:border-[#0d5c46] focus:ring-2 focus:ring-[#0d5c46]/20 bg-slate-50/50 text-sm font-semibold tracking-wider text-slate-800"
-                  />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-700">Enter 6-Digit OTP</label>
                   <button
                     type="button"
                     onClick={handleSendOtp}
                     disabled={loading || countdown > 0}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-xl text-xs font-bold text-[#0d5c46] hover:bg-emerald-50 disabled:text-slate-400 cursor-pointer transition-colors"
+                    className="text-xs font-bold text-[#0d5c46] hover:underline disabled:text-slate-400 cursor-pointer"
                   >
-                    {countdown > 0 ? `Resend (${countdown}s)` : otpSent ? 'Resend OTP' : 'Send OTP'}
+                    {countdown > 0 ? `Resend in ${countdown}s` : otpSent ? 'Resend OTP' : 'Send OTP'}
                   </button>
                 </div>
+
+                <input
+                  type="text"
+                  maxLength={6}
+                  placeholder="• • • • • •"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  className="w-full text-center tracking-[0.5em] font-mono text-lg py-2.5 rounded-2xl border border-slate-200 focus:border-[#0d5c46] focus:ring-2 focus:ring-[#0d5c46]/20 bg-slate-50/50"
+                />
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3.5 rounded-2xl bg-[#0d5c46] hover:bg-[#0a4837] active:scale-[0.98] text-white font-bold text-sm shadow-md shadow-emerald-950/20 transition-all cursor-pointer mt-2"
+                >
+                  {loading ? 'Verifying OTP...' : 'Verify & Continue'}
+                </button>
               </div>
             ) : (
-              /* Phone Password Mode */
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-slate-700">Password</label>
                   <Link to="/forgot-password" className="text-xs font-semibold text-[#0d5c46] hover:underline">
                     Forgot Password?
                   </Link>
                 </div>
+
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Enter password"
+                    placeholder="Enter account password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-200 focus:border-[#0d5c46] focus:ring-2 focus:ring-[#0d5c46]/20 bg-slate-50/50 text-sm text-slate-800 pr-10"
@@ -328,21 +421,20 @@ export default function Login() {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3.5 rounded-2xl bg-[#0d5c46] hover:bg-[#0a4837] active:scale-[0.98] text-white font-bold text-sm shadow-md shadow-emerald-950/20 transition-all cursor-pointer mt-2"
+                >
+                  {loading ? 'Logging in...' : 'Login with Password'}
+                </button>
               </div>
             )}
-
-            {/* Submit Login Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 rounded-2xl bg-[#0d5c46] hover:bg-[#0a4837] active:scale-[0.98] text-white font-bold text-sm shadow-md shadow-emerald-950/20 transition-all cursor-pointer mt-2"
-            >
-              {loading ? 'Verifying...' : phoneMode === 'otp' ? 'Login with OTP' : 'Login'}
-            </button>
           </form>
         )}
 
-        {/* ================= EMAIL LOGIN TAB ================= */}
+        {/* ================= 2. EMAIL LOGIN TAB ================= */}
         {activeTab === 'email' && (
           <form onSubmit={handleEmailSubmit} className="space-y-4">
             <div>
@@ -393,14 +485,108 @@ export default function Login() {
           </form>
         )}
 
+        {/* ================= 3. ADMIN PORTAL LOGIN TAB ================= */}
+        {activeTab === 'admin' && (
+          <form onSubmit={handleAdminSubmit} className="space-y-4">
+            
+            <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200/80 text-emerald-900 text-xs flex items-start gap-2.5">
+              <Shield className="w-4 h-4 text-[#0d5c46] shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold block">Administrator Mode</span>
+                <span className="text-[11px] text-emerald-700">
+                  Authorized for: <strong>pixelpilot03@gmail.com</strong>
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Admin Email
+              </label>
+              <input
+                type="email"
+                required
+                placeholder="pixelpilot03@gmail.com"
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 focus:border-[#0d5c46] focus:ring-2 focus:ring-[#0d5c46]/20 bg-slate-50 text-sm text-slate-900 font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Admin Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showAdminPassword ? 'text' : 'password'}
+                  required
+                  placeholder="Enter administrator password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-2xl border border-slate-300 focus:border-[#0d5c46] focus:ring-2 focus:ring-[#0d5c46]/20 bg-slate-50 text-sm text-slate-900 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPassword(!showAdminPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  {showAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Helper Button */}
+            <button
+              type="button"
+              onClick={handleFillAdminDemo}
+              className="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-mono font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-[#0d5c46]" />
+              <span>Fill: pixelpilot03@gmail.com / admin123</span>
+            </button>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 rounded-2xl bg-[#0d5c46] hover:bg-[#0a4837] active:scale-[0.98] text-white font-bold text-sm shadow-md shadow-emerald-950/20 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2"
+            >
+              {loading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Verifying Admin Access...</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>Login to Admin Portal</span>
+                </>
+              )}
+            </button>
+          </form>
+        )}
+
         {/* Footer: Sign up link */}
-        <div className="text-center mt-6 pt-5 border-t border-slate-100">
-          <p className="text-xs text-slate-500">
-            Don't have an account?{' '}
-            <Link to="/signup" className="font-bold text-[#0d5c46] hover:underline">
-              Sign Up
-            </Link>
-          </p>
+        <div className="text-center mt-6 pt-5 border-t border-slate-100 flex items-center justify-between text-xs">
+          <Link
+            to="/signup"
+            className="text-slate-500 hover:text-slate-800"
+          >
+            New user? <strong className="text-[#0d5c46]">Sign Up</strong>
+          </Link>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab(activeTab === 'admin' ? 'email' : 'admin');
+              setError('');
+              setInfoMessage('');
+            }}
+            className="text-xs font-bold text-[#0d5c46] hover:underline flex items-center gap-1 cursor-pointer"
+          >
+            <Shield className="w-3.5 h-3.5" />
+            <span>{activeTab === 'admin' ? 'Switch to Customer Login' : 'Admin Login'}</span>
+          </button>
         </div>
 
       </div>
