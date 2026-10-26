@@ -93,7 +93,6 @@ export default function Footer() {
             <h5 className="text-sm font-bold text-white mb-3 tracking-wide uppercase">Company & Support</h5>
             <ul className="space-y-2 text-xs text-slate-400">
               <li><Link to="/about" className="hover:text-emerald-400 transition-colors font-medium text-emerald-400/90">About FurSphere & Location</Link></li>
-              <li><Link to="/admin" className="hover:text-emerald-400 transition-colors">Admin Management Portal</Link></li>
               <li><Link to="/profile" className="hover:text-emerald-400 transition-colors">My Profile & Addresses</Link></li>
               <li><Link to="/orders" className="hover:text-emerald-400 transition-colors">Recent Orders & Tracking</Link></li>
               <li><Link to="/cart" className="hover:text-emerald-400 transition-colors">View Cart</Link></li>
