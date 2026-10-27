@@ -10,17 +10,21 @@ const router = express.Router();
 export const ensureProductsSeeded = async () => {
   const { isConnected } = getDBStatus();
   if (isConnected) {
-    const count = await Product.countDocuments();
-    if (count === 0) {
-      console.log('[FurSphere Products] Seeding initial product catalog into MongoDB...');
-      await Product.insertMany(defaultProducts.map(({ _id, ...p }) => p));
+    for (const p of defaultProducts) {
+      const exists = await Product.findOne({ name: p.name });
+      if (!exists) {
+        const { _id, ...cleanP } = p;
+        await Product.create(cleanP);
+      }
     }
   } else {
-    const prods = LocalStore.get('products') || [];
-    if (prods.length === 0) {
-      console.log('[FurSphere Products] Initializing local product catalog...');
-      LocalStore.set('products', defaultProducts);
+    let prods = LocalStore.get('products') || [];
+    for (const p of defaultProducts) {
+      if (!prods.some((existing) => existing.name === p.name)) {
+        prods.push(p);
+      }
     }
+    LocalStore.set('products', prods);
   }
 };
 

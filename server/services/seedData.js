@@ -214,6 +214,150 @@ export const defaultProducts = [
     isFeatured: false,
     isPopular: false,
     image: 'https://images.unsplash.com/photo-1534361960057-19889db98a1e?w=600&auto=format&fit=crop&q=80',
+  },
+  {
+    _id: 'prod_113',
+    name: 'Drools Absolute Calcium Bone Treats for Dogs',
+    category: 'Dog Food',
+    petType: 'dog',
+    price: 349,
+    originalPrice: 420,
+    rating: 4.8,
+    reviewCount: 610,
+    weight: '300 g (20 Pieces)',
+    description: 'Enriched with optimum calcium and phosphorus ratio to maintain strong bones and healthy teeth in active puppies and adult dogs.',
+    highlights: ['100% Real Bones', 'Optimum Calcium Ratio', 'Dental Health'],
+    stock: 55,
+    inStock: true,
+    isFeatured: true,
+    isPopular: true,
+    image: 'https://images.unsplash.com/photo-1541599540903-216a46ca1dc0?w=600&auto=format&fit=crop&q=80',
+  },
+  {
+    _id: 'prod_114',
+    name: 'Sheba Deluxe Tuna Fillet in Gravy Wet Cat Food',
+    category: 'Cat Food',
+    petType: 'cat',
+    price: 599,
+    originalPrice: 720,
+    rating: 4.9,
+    reviewCount: 480,
+    weight: 'Pack of 6 x 85g',
+    description: 'Fine succulent flaked tuna in rich savory gravy. Premium gourmet meal for discerning felines, rich in moisture and high-quality protein.',
+    highlights: ['Real Tuna Fillets', 'Savory Gravy', 'High Moisture Content'],
+    stock: 35,
+    inStock: true,
+    isFeatured: true,
+    isPopular: true,
+    image: 'https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=600&auto=format&fit=crop&q=80',
+  },
+  {
+    _id: 'prod_115',
+    name: 'Beaphar Herbal Flea & Tick Collar for Dogs & Cats',
+    category: 'Pet Medicines',
+    petType: 'all',
+    price: 499,
+    originalPrice: 650,
+    rating: 4.6,
+    reviewCount: 230,
+    weight: '65 cm Adjustable',
+    description: 'Waterproof herbal tick and flea repellent collar infused with margosa extract. Provides 4 months of continuous non-toxic protection.',
+    highlights: ['Natural Margosa Extract', 'Water Resistant', '4 Months Protection'],
+    stock: 40,
+    inStock: true,
+    isFeatured: false,
+    isPopular: true,
+    image: 'https://images.unsplash.com/photo-1563865436874-9aef32095fad?w=600&auto=format&fit=crop&q=80',
+  },
+  {
+    _id: 'prod_116',
+    name: 'Interactive Motion Laser & Feather Wand Cat Toy',
+    category: 'Toys',
+    petType: 'cat',
+    price: 249,
+    originalPrice: 349,
+    rating: 4.7,
+    reviewCount: 390,
+    weight: 'Lightweight',
+    description: 'USB rechargeable dual-mode red laser pointer and flexible bell feather wand to stimulate your cat’s natural hunting instincts.',
+    highlights: ['USB Rechargeable', 'Dual Mode Play', 'Safe LED Laser'],
+    stock: 90,
+    inStock: true,
+    isFeatured: false,
+    isPopular: true,
+    image: 'https://images.unsplash.com/photo-1526336024174-e58f5cdd8e13?w=600&auto=format&fit=crop&q=80',
+  },
+  {
+    _id: 'prod_117',
+    name: 'Orthopedic Calming Memory Foam Pet Bed',
+    category: 'Accessories',
+    petType: 'all',
+    price: 1499,
+    originalPrice: 1999,
+    rating: 4.9,
+    reviewCount: 340,
+    weight: 'Large (80x60cm)',
+    description: 'Super-soft faux shag fur donut bed designed to reduce pet anxiety and ease joint muscle pain with high-density memory foam padding.',
+    highlights: ['Orthopedic Support', 'Anxiety Relief', 'Washable Zip Cover'],
+    stock: 25,
+    inStock: true,
+    isFeatured: true,
+    isPopular: true,
+    image: 'https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?w=600&auto=format&fit=crop&q=80',
+  },
+  {
+    _id: 'prod_118',
+    name: 'Himalaya Erina-EP Anti-Tick & Flea Pet Shampoo',
+    category: 'Healthcare',
+    petType: 'all',
+    price: 320,
+    originalPrice: 380,
+    rating: 4.6,
+    reviewCount: 520,
+    weight: '200 ml',
+    description: 'Formulated with Eucalyptus and Neem to eliminate ticks, lice, and fleas naturally. Prevents skin infections and promotes a shiny, healthy coat.',
+    highlights: ['Natural Neem & Eucalyptus', 'Anti-dandruff', 'Prevents Skin Infection'],
+    stock: 60,
+    inStock: true,
+    isFeatured: false,
+    isPopular: false,
+    image: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=600&auto=format&fit=crop&q=80',
+  },
+  {
+    _id: 'prod_119',
+    name: 'Nutri-Vet Multi-Vitamins Soft Chews for Dogs',
+    category: 'Healthcare',
+    petType: 'dog',
+    price: 799,
+    originalPrice: 999,
+    rating: 4.8,
+    reviewCount: 290,
+    weight: '60 Liver Chews',
+    description: 'Daily vitamin and mineral supplement for active dogs. Enhances vitality, hip and joint flexibility, digestion, and shiny skin.',
+    highlights: ['Liver Flavored', 'Glucosamine & Minerals', 'Immune Defense'],
+    stock: 35,
+    inStock: true,
+    isFeatured: true,
+    isPopular: false,
+    image: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=600&auto=format&fit=crop&q=80',
+  },
+  {
+    _id: 'prod_120',
+    name: 'Automatic Gravity Water Dispenser & Feeder Bowl',
+    category: 'Accessories',
+    petType: 'all',
+    price: 649,
+    originalPrice: 850,
+    rating: 4.7,
+    reviewCount: 310,
+    weight: '3.8 Liters',
+    description: 'Self-replenishing pet feeder with automatic siphon gravity flow. BPA-free food-grade plastic keeps water fresh and clean for days.',
+    highlights: ['BPA-Free Plastic', 'Automatic Gravity Siphon', '3.8L Big Capacity'],
+    stock: 45,
+    inStock: true,
+    isFeatured: false,
+    isPopular: true,
+    image: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=600&auto=format&fit=crop&q=80',
   }
 ];
 
@@ -250,10 +394,20 @@ export const ensureAdminUser = async () => {
             }]
           });
           console.log(`[FurSphere Auth] Administrator ready: ${email} / ${defaultPassword}`);
-        } else if (admin.role !== 'admin') {
-          admin.role = 'admin';
-          await admin.save();
-          console.log(`[FurSphere Auth] Promoted ${email} to admin role!`);
+        } else {
+          let updated = false;
+          if (admin.role !== 'admin') {
+            admin.role = 'admin';
+            updated = true;
+          }
+          if (admin.password !== hashedPassword) {
+            admin.password = hashedPassword;
+            updated = true;
+          }
+          if (updated) {
+            await admin.save();
+            console.log(`[FurSphere Auth] Verified and updated ${email} credentials!`);
+          }
         }
       } else {
         let users = LocalStore.get('users') || [];
